@@ -1,143 +1,144 @@
-#!/usr/bin/env python
-import os, json, re
-from dotenv import load_dotenv
-from flask import Flask, request, render_template_string, redirect, url_for
-from crewai import Agent, Task, Crew, LLM
-from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
-from typing import Type
-from linkedin_search_mcp import linkedin_contact_lookup
-from ui_template import HTML
+# #!/usr/bin/env python
+# import os, json, re
+# from dotenv import load_dotenv
+# from flask import Flask, request, render_template_string, redirect, url_for
+# from crewai import Agent, Task, Crew, LLM
+# from crewai.tools import BaseTool
+# from pydantic import BaseModel, Field
+# from typing import Type
+# from linkedin_search_mcp import linkedin_contact_lookup
+# from ui_template import HTML
 
-load_dotenv()
+# load_dotenv()
 
-llm = LLM(
-    model="gemini/gemini-1.5-flash",
-    api_key=os.getenv("GEMINI_API_KEY")
-)
+# llm = LLM(
+#     model="gemini/gemini-1.5-flash",
+#     api_key=os.getenv("GEMINI_API_KEY")
+# )
 
-# Define tool input schema properly
-class LinkedInQueryInput(BaseModel):
-    person_query: str = Field(..., description="Name of person or company to search")
+# # Define tool input schema properly
+# class LinkedInQueryInput(BaseModel):
+#     person_query: str = Field(..., description="Name of person or company to search")
 
-class LinkedInTool(BaseTool):
-    name: str = "LinkedInContactLookup"
-    description: str = "Fetches LinkedIn profile & contact info using multiple search engines"
-    args_schema: Type[BaseModel] = LinkedInQueryInput
+# class LinkedInTool(BaseTool):
+#     name: str = "LinkedInContactLookup"
+#     description: str = "Fetches LinkedIn profile & contact info using multiple search engines"
+#     args_schema: Type[BaseModel] = LinkedInQueryInput
 
-    def _run(self, person_query: str) -> str:
-        print(f"[TOOL] Looking up: {person_query}")
-        result = linkedin_contact_lookup(person_query)
-        hits = result.get("hits", [])[:2]
+#     def _run(self, person_query: str) -> str:
+#         print(f"[TOOL] Looking up: {person_query}")
+#         result = linkedin_contact_lookup(person_query)
+#         hits = result.get("hits", [])[:2]
 
-        # for h in hits:
-        #     snippet = h.get("company", "")
-        #     loc_match = re.search(r"(Location|অবস্থান): ([^\|,\n]+)", snippet, re.I)
-        #     if loc_match:
-        #         h["location"] = loc_match.group(2).strip()
-        #     company_match = re.search(r"(Company|at|Experience|অভিজ্ঞতা):\s*(.*?)([.|,]|$)", snippet, re.I)
-        #     if company_match:
-        #         h["company"] = company_match.group(2).strip()
-        # return json.dumps(hits)
+#         # for h in hits:
+#         #     snippet = h.get("company", "")
+#         #     loc_match = re.search(r"(Location|অবস্থান): ([^\|,\n]+)", snippet, re.I)
+#         #     if loc_match:
+#         #         h["location"] = loc_match.group(2).strip()
+#         #     company_match = re.search(r"(Company|at|Experience|অভিজ্ঞতা):\s*(.*?)([.|,]|$)", snippet, re.I)
+#         #     if company_match:
+#         #         h["company"] = company_match.group(2).strip()
+#         # return json.dumps(hits)
 
-        for h in hits:
-            snippet = h.get("company", "") or ""
+#         for h in hits:
+#             snippet = h.get("company", "") or ""
 
-            # Extract location if available in the snippet
-            loc_match = re.search(r"(Location|অবস্থান):\s*([^\|,\n]+)", snippet, re.I)
-            if loc_match:
-                h["location"] = loc_match.group(2).strip()
+#             # Extract location if available in the snippet
+#             loc_match = re.search(r"(Location|অবস্থান):\s*([^\|,\n]+)", snippet, re.I)
+#             if loc_match:
+#                 h["location"] = loc_match.group(2).strip()
 
-            # Try to extract company name
-            company_match = re.search(r"(Company|at|Experience|অভিজ্ঞতা):\s*([^\|,.]+)", snippet, re.I)
-            if company_match:
-                h["company"] = company_match.group(2).strip()
-            else:
-                h["company"] = "N/A"
+#             # Try to extract company name
+#             company_match = re.search(r"(Company|at|Experience|অভিজ্ঞতা):\s*([^\|,.]+)", snippet, re.I)
+#             if company_match:
+#                 h["company"] = company_match.group(2).strip()
+#             else:
+#                 h["company"] = "N/A"
 
-            # Everything remaining in the snippet → treat as skillset
-            # Remove company name if found and clean up
-            skill_text = snippet.replace(h["company"], "") if h.get("company") and h["company"] != "N/A" else snippet
-            h["skills"] = skill_text.strip(" \n\t:-,.")
+#             # Everything remaining in the snippet → treat as skillset
+#             # Remove company name if found and clean up
+#             skill_text = snippet.replace(h["company"], "") if h.get("company") and h["company"] != "N/A" else snippet
+#             h["skills"] = skill_text.strip(" \n\t:-,.")
 
-        return json.dumps(hits)
+#         return json.dumps(hits)
 
 
 
-tools = [LinkedInTool()]
+# tools = [LinkedInTool()]
 
-def run_lookup(query: str):
-    agent = Agent(
-        role="LookupBot",
-        goal="Return structured contact info.",
-        backstory="Skilled researcher using LinkedIn and fallback search.",
-        tools=tools,
-        llm=llm,
-        verbose=True
-    )
+# def run_lookup(query: str):
+#     agent = Agent(
+#         role="LookupBot",
+#         goal="Return structured contact info.",
+#         backstory="Skilled researcher using LinkedIn and fallback search.",
+#         tools=tools,
+#         llm=llm,
+#         verbose=True
+#     )
 
-    task = Task(
-        description=f"Find contact info for {query}.",
-        expected_output="List of dicts with url, designation, company, location, phones.",
-        agent=agent
-    )
+#     task = Task(
+#         description=f"Find contact info for {query}.",
+#         expected_output="List of dicts with url, designation, company, location, phones.",
+#         agent=agent
+#     )
 
-    out = Crew(agents=[agent], tasks=[task]).kickoff()
-    raw = out.raw.strip().strip("`")
-    print("[DEBUG] Raw Output:", raw)
+#     out = Crew(agents=[agent], tasks=[task]).kickoff()
+#     raw = out.raw.strip().strip("`")
+#     print("[DEBUG] Raw Output:", raw)
 
-    if raw.startswith("{") or raw.startswith("["):
-        try:
-            return json.loads(raw)
-        except Exception as e:
-            print("[ERROR] JSON parse error:", e)
-    else:
-        print("[WARN] Output was not JSON. Skipping.")
-    return []
+#     if raw.startswith("{") or raw.startswith("["):
+#         try:
+#             return json.loads(raw)
+#         except Exception as e:
+#             print("[ERROR] JSON parse error:", e)
+#     else:
+#         print("[WARN] Output was not JSON. Skipping.")
+#     return []
 
-def generate_recommendations(entity: str, viewer_company: str):
-    agent = Agent(
-        role="Business Recommender",
-        goal="Suggest B2B services based on company profile",
-        backstory="Experienced strategy analyst",
-        llm=llm
-    )
+# def generate_recommendations(entity: str, viewer_company: str):
+#     agent = Agent(
+#         role="Business Recommender",
+#         goal="Suggest B2B services based on company profile",
+#         backstory="Experienced strategy analyst",
+#         llm=llm
+#     )
 
-    task = Task(
-        description=f"""Given the entity '{entity}', and your company is '{viewer_company}',
-write 3-5 brief and useful B2B recommendations to help offer services/products.""",
-        agent=agent,
-        expected_output="Bullet list of business suggestions"
-    )
+#     task = Task(
+#         description=f"""Given the entity '{entity}', and your company is '{viewer_company}',
+# write 3-5 brief and useful B2B recommendations to help offer services/products.""",
+#         agent=agent,
+#         expected_output="Bullet list of business suggestions"
+#     )
 
-    out = Crew(agents=[agent], tasks=[task]).kickoff()
-    return out.raw.strip().strip("`")
+#     out = Crew(agents=[agent], tasks=[task]).kickoff()
+#     return out.raw.strip().strip("`")
 
-app = Flask(__name__)
+# app = Flask(__name__)
 
-@app.route("/", methods=["GET", "POST"])
-def home():
-    q = request.form.get("q", "").strip() if request.method == "POST" else request.args.get("q", "")
-    hits = run_lookup(q) if q and request.method == "POST" else None
-    reco = generate_recommendations(q, "Intelliswift") if hits else None
+# @app.route("/", methods=["GET", "POST"])
+# def home():
+#     q = request.form.get("q", "").strip() if request.method == "POST" else request.args.get("q", "")
+#     hits = run_lookup(q) if q and request.method == "POST" else None
+#     reco = generate_recommendations(q, "Intelliswift") if hits else None
 
-    return render_template_string(
-        HTML,
-        hits=hits,
-        q=q,
-        page=1,
-        total_pages=1,
-        show_embed=False,
-        reco=reco
-    )
+#     return render_template_string(
+#         HTML,
+#         hits=hits,
+#         q=q,
+#         page=1,
+#         total_pages=1,
+#         show_embed=False,
+#         reco=reco
+#     )
 
-@app.route("/clear")
-def clear():
-    return redirect(url_for("home"))
+# @app.route("/clear")
+# def clear():
+#     return redirect(url_for("home"))
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5079, debug=True)
+# if __name__ == "__main__":
+#     app.run(host="0.0.0.0", port=5079, debug=True)
 
+################################################
 
 # #!/usr/bin/env python
 # import os, json, re

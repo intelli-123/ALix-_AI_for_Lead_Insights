@@ -15,3 +15,11 @@ google-api-python-client
 chromadb
 tavily-python
 duckduckgo_search
+frontend
+tools
+docx
+python-docx
+python-pptx
+PyMuPDF
+msal
+
